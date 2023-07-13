@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int     @id @default(autoincrement())
+  username    String  @unique @db.VarChar(64)
+  email       String  @unique @db.VarChar(64)
+  name        String  @db.VarChar(255)
+  password    String
+  description String?
+  roleId      Int
+
+  role      Role?           @relation(fields: [roleId], references: [id])
+  friend    User[]          @relation(name: "friends")
+  friends   User[]          @relation(name: "friends")
+  request   FriendRequest[]
+  sentTo    FriendRequest[] @relation(name: "sentTo")
+  projects  UserProject[]
+  userTasks Task[]          @relation(name: "user_tasks")
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(64)
+  users User[]
+}
+
+model FriendRequest {
+  id               Int      @id @default(autoincrement())
+  requestInitiator Int
+  requestTo        Int
+  requestDate      DateTime @default(now())
+
+  request User @relation(fields: [requestInitiator], references: [id], onDelete: Cascade)
+  sentTo  User @relation(name: "sentTo", fields: [requestTo], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(64)
+  description String   @db.Text
+  createdAt   DateTime @default(now())
+  deadline    DateTime
+  avatarUrl   String?
+  roles       String[]
+
+  usersInProject  UserProject[]
+  tablesInProject ProjectTables[]
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(64)
+  description String   @db.VarChar(500)
+  priority    String   @default("low") @db.VarChar(20)
+  createdAt   DateTime @default(now())
+  tableId     Int
+
+  userTasks   User[]        @relation(name: "user_tasks")
+  tasksTags   TaskTags[]    @relation("tasks_tags") //many roles
+  taskInTable ProjectTables @relation(fields: [tableId], references: [id], onDelete: Cascade)
+}
+
+model UserProject {
+  userId          Int
+  projectId       Int
+  isOwner         Boolean  @default(false)
+  isAdmin         Boolean  @default(false)
+  addedAt         DateTime @default(now())
+  userProjectRole String
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([userId, projectId])
+}
+
+model TaskTags {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(64)
+
+  tasksTags Task[] @relation("tasks_tags")
+}
+
+model ProjectLinks {
+  id        Int    @id @default(autoincrement())
+  service   String @db.VarChar(64)
+  url       String @db.VarChar(64)
+  projectId Int //
+}
+
+model ProjectTables {
+  id        Int    @id @default(autoincrement())
+  name      String @db.VarChar(64)
+  projectId Int
+
+  project_table Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasksInTable  Task[]
+}

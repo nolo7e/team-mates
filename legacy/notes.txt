@@ -1,0 +1,9 @@
+
+    const TEST = await prisma.project.findUnique({
+      where: { id: project.id },
+      include: {
+        tablesInProject: { include: { tasksInTable: true } },
+        usersInProject: true,
+      },
+    });
+    console.log(TEST);
